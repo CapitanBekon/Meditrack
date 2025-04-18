@@ -1,6 +1,11 @@
-from Users.Doctors import Doctor
-from Users.Patient import patient
-from appointmentSchedule.merge_sort import merge_sort
+# Add the parent directory to the system path to allow importing modules from it
+import sys
+import os
+import json  # Import JSON module for data storage
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from merge_sort import merge_sort
+from Users.Doctors import Doctor  # Import the Doctor class
 
 class appointment:
     def __init__(self, AppointmentID, Patient, Doctor, DateTime):
@@ -152,3 +157,56 @@ class appointmentScheduler:
                 f"DateTime: {details['DateTime']}"
             )
         return "\n".join(schedule)
+
+    def save_to_json(self, filename):
+        """
+        Save all appointments to a JSON file.
+        :param filename: The name of the JSON file.
+        """
+        data = [
+            {
+                "AppointmentID": appointment.AppointmentID,
+                "Patient": appointment.Patient.getName(),
+                "Doctor": appointment.Doctor.Name,
+                "DateTime": appointment.DateTime
+            }
+            for appointment in self.appointments
+        ]
+        with open(filename, "w") as file:
+            json.dump(data, file, indent=4)
+
+    def load_from_json(self, filename):
+        """
+        Load all appointments from a JSON file.
+        :param filename: The name of the JSON file.
+        """
+        try:
+            with open(filename, "r") as file:
+                data = json.load(file)
+
+            self.appointments = []
+            for appointment_data in data:
+                # Create appointment objects from JSON data
+                new_appointment = appointment(
+                    AppointmentID=appointment_data["AppointmentID"],
+                    Patient=appointment_data["Patient"],  # Replace with actual Patient object
+                    Doctor=appointment_data["Doctor"],  # Replace with actual Doctor object
+                    DateTime=appointment_data["DateTime"]
+                )
+                self.appointments.append(new_appointment)
+
+            # Update the nextAppointmentID
+            if self.appointments:
+                self.nextAppointmentID = max(a.AppointmentID for a in self.appointments) + 1
+        except FileNotFoundError:
+            print(f"File {filename} not found. Starting with empty data.")
+
+
+# Example usage of the appointmentScheduler
+scheduler = appointmentScheduler()
+
+# Load appointments from JSON
+scheduler.load_from_json("appointments.json")
+
+# Save appointments to JSON
+scheduler.save_to_json("appointments.json")

@@ -1,6 +1,11 @@
-from medicalHistory.heap_sort import heap_sort
-from Users.Patient import patient
-from Users.Doctors import Doctor
+import sys
+import os
+import json  # Import JSON module for data storage
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from heap_sort import heap_sort
+from Users.Doctors import Doctor  # Import the Doctor class
+from Users.Patient import patient  # Import the Patient class
 
 class history:
     def __init__(self, patient, doctor, age, diagnosis, injuries, medications, allergies):
@@ -77,6 +82,7 @@ class MedicalHistoryManager:
         doctor_obj = self.doctors.get(doctor_id)
 
         if not patient_obj or not doctor_obj:
+            print(f"Patient ID: {patient_id}, Doctor ID: {doctor_id}")
             raise ValueError("Invalid patient or doctor ID.")
 
         new_history = history(
@@ -90,36 +96,64 @@ class MedicalHistoryManager:
         )
         self.medical_histories.append(new_history)
 
-    def update_history(self, patient_id, updated_entry):
+    def save_to_json(self, filename):
         """
-        Update an existing medical history entry.
-        :param patient_id: The ID of the patient whose history is being updated.
-        :param updated_entry: The updated medical history entry.
-        :return: True if the update was successful, False otherwise.
+        Save all data (patients, doctors, and medical histories) to a JSON file.
+        :param filename: The name of the JSON file.
         """
-        for entry in self.medical_histories:
-            if entry.patient.getPatientID() == patient_id:
-                if "doctor_id" in updated_entry:
-                    doctor_obj = self.doctors.get(updated_entry["doctor_id"])
-                    if not doctor_obj:
-                        raise ValueError("Invalid doctor ID.")
-                    entry.doctor = doctor_obj
-                entry.age = updated_entry.get("age", entry.age)
-                entry.diagnosis = updated_entry.get("diagnosis", entry.diagnosis)
-                entry.injuries = updated_entry.get("injuries", entry.injuries)
-                entry.medications = updated_entry.get("medications", entry.medications)
-                entry.allergies = updated_entry.get("allergies", entry.allergies)
-                return True
-        return False
+        data = {
+            "patients": {pid: vars(patient) for pid, patient in self.patients.items()},
+            "doctors": {did: vars(doctor) for did, doctor in self.doctors.items()},
+            "medical_histories": [
+                {
+                    "patient_id": history.patient.getPatientID(),
+                    "doctor_id": history.doctor.DoctorID,
+                    "age": history.age,
+                    "diagnosis": history.diagnosis,
+                    "injuries": history.injuries,
+                    "medications": history.medications,
+                    "allergies": history.allergies,
+                }
+                for history in self.medical_histories
+            ],
+        }
+        with open(filename, "w") as file:
+            json.dump(data, file, indent=4)
 
-    def sort_histories(self, key=lambda x: x.diagnosis):
+    def load_from_json(self, filename):
         """
-        Sort all medical history entries using heap sort.
-        :param key: Key function to sort by (default is 'diagnosis').
-        :return: Sorted list of medical history entries.
+        Load all data (patients, doctors, and medical histories) from a JSON file.
+        :param filename: The name of the JSON file.
         """
-        self.medical_histories = heap_sort(self.medical_histories, key=lambda x: key(x.get_summary()))
-        return self.medical_histories
+        try:
+            with open(filename, "r") as file:
+                data = json.load(file)
+
+            # Load patients
+            for pid, patient_data in data["patients"].items():
+                self.patients[pid] = patient(**patient_data)
+
+            # Load doctors
+            for did, doctor_data in data["doctors"].items():
+                self.doctors[did] = Doctor(**doctor_data)
+
+            # Load medical histories
+            for history_data in data["medical_histories"]:
+                patient_obj = self.patients.get(history_data["patient_id"])
+                doctor_obj = self.doctors.get(history_data["doctor_id"])
+                if patient_obj and doctor_obj:
+                    new_history = history(
+                        patient=patient_obj,
+                        doctor=doctor_obj,
+                        age=history_data["age"],
+                        diagnosis=history_data["diagnosis"],
+                        injuries=history_data["injuries"],
+                        medications=history_data["medications"],
+                        allergies=history_data["allergies"],
+                    )
+                    self.medical_histories.append(new_history)
+        except FileNotFoundError:
+            print(f"File {filename} not found. Starting with empty data.")
 
     def view_histories(self):
         """
@@ -140,4 +174,39 @@ class MedicalHistoryManager:
                 f"Medications: {summary['medications']}"
             )
         return "\n".join(histories)
+
+
+# Example usage of the MedicalHistoryManager
+manager = MedicalHistoryManager()
+
+# Load data from JSON
+manager.load_from_json("medical_data.json")
+
+# Add medical history entries
+manager.add_history(
+    patient_id=1,
+    doctor_id=1,
+    age=30,
+    diagnosis=["Flu"],
+    injuries=[],
+    medications=["Paracetamol"],
+    allergies=["Penicillin"]
+)
+
+manager.add_history(
+    patient_id=2,
+    doctor_id=2,
+    age=25,
+    diagnosis=["Fracture"],
+    injuries=["Arm fracture"],
+    medications=["Ibuprofen"],
+    allergies=[]
+)
+
+# Save data to JSON
+manager.save_to_json("medical_data.json")
+
+# View unsorted histories
+print("Unsorted Histories:")
+print(manager.view_histories())
 

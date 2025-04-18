@@ -1,8 +1,4 @@
-import Patient
-import User
-from appointmentSchedule.appointment import appointment
-from patientRecords.record import Record
-from medicalHistory.history import history
+import json
 
 class Doctor:
     def __init__(self, DoctorID, Name, daysWorking):
@@ -15,7 +11,7 @@ class Doctor:
         """
         self.DoctorID = DoctorID
         self.Name = Name
-        self.daysWorking = daysWorking  # Example: {'Monday': [[9, 10, 11], [9, 10]]}
+        self.daysWorking = daysWorking 
 
     def getDaysWorking(self):
         """
@@ -29,7 +25,7 @@ class Doctor:
         Set the days the doctor is working along with their hours.
         :param daysWorking: Dictionary with keys as days and values as 2D arrays [[hours_working], [hours_booked]].
         """
-        self.daysWorking = daysWorking #append fix
+        self.daysWorking = daysWorking
 
     def checkAvailability(self, day, hour):
         """
@@ -75,3 +71,55 @@ class Doctor:
         """
         self.Name = Name
         self.Specialization = Specialization
+
+    def save_to_json(self, filename):
+        """
+        Save the doctor's data to a JSON file.
+        :param filename: The name of the JSON file.
+        """
+        data = {
+            "DoctorID": self.DoctorID,
+            "Name": self.Name,
+            "daysWorking": self.daysWorking
+        }
+        with open(filename, "w") as file:
+            json.dump(data, file, indent=4)
+
+    @classmethod
+    def load_from_json(cls, filename):
+        """
+        Load the doctor's data from a JSON file.
+        :param filename: The name of the JSON file.
+        :return: A Doctor object.
+        """
+        try:
+            with open(filename, "r") as file:
+                data = json.load(file)
+            return cls(
+                DoctorID=data["DoctorID"],
+                Name=data["Name"],
+                daysWorking=data["daysWorking"]
+            )
+        except FileNotFoundError:
+            print(f"File {filename} not found.")
+            return None
+
+
+# Example usage
+# doctor = Doctor(
+#     DoctorID=1,
+#     Name="Dr. Smith",
+#     daysWorking={
+#         "Monday": [[9, 10, 11], [9]],  # 9, 10, 11 are working hours; 9 is already booked
+#         "Wednesday": [[14, 15, 16], []]  # 14, 15, 16 are working hours; none are booked
+#     }
+# )
+
+# # Save the doctor's data to a JSON file
+# doctor.save_to_json("doctor_1.json")
+
+# Load the doctor's data from a JSON file
+loaded_doctor = Doctor.load_from_json("doctor_1.json")
+if loaded_doctor:
+    print("Loaded Doctor:")
+    print(loaded_doctor.viewSchedule())
