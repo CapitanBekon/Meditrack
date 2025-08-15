@@ -1,1 +1,10 @@
-[]
+[
+    {
+        "appointmentID": 1,
+        "patient": "duke",
+        "doctorID": 1,
+        "doctorName": "Dr. Smith",
+        "day": "Monday",
+        "time": 11
+    }
+]

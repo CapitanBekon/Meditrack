@@ -1,3 +1,8 @@
+class Roles:
+    PATIENT = 1
+    DOCTOR = 2
+    ADMIN = 3
+
 class User:
     def __init__(self, user_id: str, username: str, password: str, permission_level: int, accountCreated: float):
         """
@@ -58,3 +63,12 @@ class User:
         :return: The permission level of the user.
         """
         return self.permission_level
+
+    def has_permission(self, required_level: int) -> bool:
+        """Check if the user has at least the required permission level."""
+        return self.permission_level >= required_level
+
+    def get_role_name(self) -> str:
+        """Return the role name for this user based on permission level."""
+        mapping = {Roles.ADMIN: "admin", Roles.DOCTOR: "doctor", Roles.PATIENT: "patient"}
+        return mapping.get(self.permission_level, "unknown")

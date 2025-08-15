@@ -42,56 +42,40 @@ class appointmentScheduler:
         self.appointments = []  # List to store all scheduled appointments
         self.nextAppointmentID = 1  # Counter to generate unique appointment IDs
 
-    def schedule(self, ProposedDate, ProposedTime, Doctor, Patient):
+    def schedule(self, Date, Hour, Doctor, Patient):
         """
         Schedule a new appointment.
-        :param ProposedDate: The proposed date for the appointment.
-        :param ProposedTime: The proposed time for the appointment.
+        :param Date: The date for the appointment (YYYY-MM-DD).
+        :param Hour: The hour for the appointment (int, 0-23).
         :param Doctor: Doctor object for the appointment.
         :param Patient: Patient object for the appointment.
         :return: True if the appointment was successfully scheduled, False otherwise.
         """
-        # Check if the doctor is available at the proposed date and time
-        if Doctor.checkAvailability(ProposedDate, ProposedTime):
-            # Book the hour for the doctor
-            Doctor.bookHour(ProposedDate, ProposedTime)
-
-            # Create a new appointment object
+        if Doctor.checkAvailability(Date, Hour):
+            Doctor.bookHour(Date, Hour)
             new_appointment = appointment(
                 AppointmentID=self.nextAppointmentID,
                 Patient=Patient,
                 Doctor=Doctor,
-                DateTime=f"{ProposedDate} {ProposedTime}:00"
+                DateTime=f"{Date} {Hour}:00"
             )
-
-            # Add the appointment to the list of scheduled appointments
             self.appointments.append(new_appointment)
-
-            # Increment the appointment ID counter
             self.nextAppointmentID += 1
+            return True
+        return False
 
-            return True  # Appointment successfully scheduled
-        return False  # Doctor is not available at the proposed time
-
-    def suggestAvailableSlots(self, Doctor, day):
+    def suggestAvailableSlots(self, Doctor, date):
         """
-        Suggest available time slots for a doctor on a specific day.
+        Suggest available time slots for a doctor on a specific date.
         :param Doctor: Doctor object to check availability.
-        :param day: The day to check for available slots.
+        :param date: The date (YYYY-MM-DD) to check for available slots.
         :return: A sorted list of available time slots.
         """
-        if day not in Doctor.daysWorking:
-            return []  # No working hours on this day
-
-        hours_working, hours_booked = Doctor.daysWorking[day]
-
-        # Find available hours by excluding booked hours
+        if date not in Doctor.daysWorking:
+            return []  # No working hours on this date
+        hours_working, hours_booked = Doctor.daysWorking[date]
         available_slots = [{"time": hour} for hour in hours_working if hour not in hours_booked]
-
-        # Sort the available slots using merge_sort
         sorted_slots = merge_sort(available_slots)
-
-        # Return the sorted list of available slots
         return [slot["time"] for slot in sorted_slots]
 
     def cancel(self, AppointmentID):
@@ -108,7 +92,8 @@ class appointmentScheduler:
                 # Free up the doctor's booked hour
                 date, time = appointment.DateTime.split(" ")
                 time = int(time.split(":")[0])  # Extract the hour
-                appointment.Doctor.daysWorking[date][1].remove(time)
+                if date in appointment.Doctor.daysWorking and time in appointment.Doctor.daysWorking[date][1]:
+                    appointment.Doctor.daysWorking[date][1].remove(time)
 
                 return True  # Appointment successfully canceled
         return False  # Appointment not found
@@ -117,27 +102,27 @@ class appointmentScheduler:
         """
         Reschedule an existing appointment.
         :param AppointmentID: The ID of the appointment to reschedule.
-        :param NewDate: The new date for the appointment.
-        :param NewTime: The new time for the appointment.
+        :param NewDate: The new date for the appointment (YYYY-MM-DD).
+        :param NewTime: The new time for the appointment (int).
         :return: True if the appointment was successfully rescheduled, False otherwise.
         """
         for appointment in self.appointments:
             if appointment.AppointmentID == AppointmentID:
-                # Check if the doctor is available at the new date and time
                 if appointment.Doctor.checkAvailability(NewDate, NewTime):
                     # Free up the old booked hour
                     old_date, old_time = appointment.DateTime.split(" ")
-                    old_time = int(old_time.split(":")[0])  # Extract the hour
-                    appointment.Doctor.daysWorking[old_date][1].remove(old_time)
+                    old_time = int(old_time.split(":")[0])
+                    if old_date in appointment.Doctor.daysWorking and old_time in appointment.Doctor.daysWorking[old_date][1]:
+                        appointment.Doctor.daysWorking[old_date][1].remove(old_time)
 
-                    # Book the new hour for the doctor
+                    # Book the new hour
                     appointment.Doctor.bookHour(NewDate, NewTime)
 
                     # Update the appointment details
                     appointment.DateTime = f"{NewDate} {NewTime}:00"
 
-                    return True  # Appointment successfully rescheduled
-        return False  # Appointment not found or doctor not available
+                    return True
+        return False
 
     def viewAppointments(self):
         """
@@ -186,7 +171,6 @@ class appointmentScheduler:
 
             self.appointments = []
             for appointment_data in data:
-                # Create appointment objects from JSON data
                 new_appointment = appointment(
                     AppointmentID=appointment_data["AppointmentID"],
                     Patient=appointment_data["Patient"],  # Replace with actual Patient object
@@ -195,7 +179,6 @@ class appointmentScheduler:
                 )
                 self.appointments.append(new_appointment)
 
-            # Update the nextAppointmentID
             if self.appointments:
                 self.nextAppointmentID = max(a.AppointmentID for a in self.appointments) + 1
         except FileNotFoundError:

@@ -1,0 +1,21 @@
+[
+    {
+        "historyID": "1",
+        "date": "2020-99-10",
+        "patient": "duke",
+        "doctor": "drsmith",
+        "age": 11,
+        "diagnosis": [
+            "cancer"
+        ],
+        "injuries": [
+            "caner but worse"
+        ],
+        "medications": [
+            "a ciggy"
+        ],
+        "allergies": [
+            "none"
+        ]
+    }
+]
